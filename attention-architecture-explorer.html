@@ -1,0 +1,1500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attention Architecture Explorer | Interactive Learning</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Playfair+Display:wght@600;800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #2d5d7b;
+            --secondary: #e76f51;
+            --accent: #f4a261;
+            --background: #faf8f5;
+            --card-bg: #ffffff;
+            --text: #264653;
+            --text-light: #6b7c8c;
+            --border: #e0ddd8;
+            --success: #06a77d;
+            --warning: #e76f51;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--background);
+            color: var(--text);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        .noise-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            opacity: 0.03;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' /%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' /%3E%3C/svg%3E");
+            z-index: 9999;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--primary) 0%, #1a3a4d 100%);
+            color: white;
+            padding: 3rem 2rem;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px);
+            background-size: 30px 30px;
+            animation: drift 20s linear infinite;
+        }
+
+        @keyframes drift {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(30px, 30px); }
+        }
+
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .subtitle {
+            font-family: 'Space Mono', monospace;
+            font-size: 1rem;
+            opacity: 0.9;
+            letter-spacing: 2px;
+            position: relative;
+            z-index: 1;
+        }
+
+        nav {
+            background: var(--card-bg);
+            padding: 1rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            border-bottom: 2px solid var(--border);
+        }
+
+        nav ul {
+            list-style: none;
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            flex-wrap: wrap;
+        }
+
+        nav a {
+            color: var(--text);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.95rem;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            font-family: 'Space Mono', monospace;
+        }
+
+        nav a:hover {
+            background: var(--primary);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 3rem 2rem;
+        }
+
+        .section {
+            margin-bottom: 4rem;
+            opacity: 0;
+            animation: fadeInUp 0.8s ease forwards;
+        }
+
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+        }
+
+        .section:nth-child(1) { animation-delay: 0.1s; }
+        .section:nth-child(2) { animation-delay: 0.2s; }
+        .section:nth-child(3) { animation-delay: 0.3s; }
+        .section:nth-child(4) { animation-delay: 0.4s; }
+        .section:nth-child(5) { animation-delay: 0.5s; }
+
+        h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.5rem;
+            margin-bottom: 1.5rem;
+            color: var(--primary);
+            position: relative;
+            display: inline-block;
+        }
+
+        h2::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 0;
+            width: 60%;
+            height: 4px;
+            background: linear-gradient(90deg, var(--secondary), var(--accent));
+            border-radius: 2px;
+        }
+
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .paper-card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            border: 2px solid var(--border);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .paper-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, var(--secondary), var(--accent));
+        }
+
+        .paper-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+        }
+
+        .paper-card h3 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.8rem;
+            margin-bottom: 0.5rem;
+            color: var(--primary);
+        }
+
+        .paper-meta {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.85rem;
+            color: var(--text-light);
+            margin-bottom: 1.5rem;
+        }
+
+        .flashcard-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .flashcard {
+            perspective: 1000px;
+            height: 250px;
+            cursor: pointer;
+        }
+
+        .flashcard-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+        }
+
+        .flashcard.flipped .flashcard-inner {
+            transform: rotateY(180deg);
+        }
+
+        .flashcard-front, .flashcard-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border: 2px solid var(--border);
+        }
+
+        .flashcard-front {
+            background: linear-gradient(135deg, var(--primary), #1a3a4d);
+            color: white;
+        }
+
+        .flashcard-back {
+            transform: rotateY(180deg);
+            background: var(--card-bg);
+            color: var(--text);
+        }
+
+        .flashcard-front h4 {
+            font-size: 1.3rem;
+            font-family: 'Playfair Display', serif;
+        }
+
+        .quiz-container {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 2.5rem;
+            margin-top: 2rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            border: 2px solid var(--border);
+        }
+
+        .quiz-question {
+            font-size: 1.3rem;
+            margin-bottom: 2rem;
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .quiz-options {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .quiz-option {
+            background: var(--background);
+            padding: 1.5rem;
+            border-radius: 10px;
+            border: 2px solid var(--border);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .quiz-option:hover {
+            border-color: var(--primary);
+            background: white;
+            transform: translateX(5px);
+        }
+
+        .quiz-option.selected {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .quiz-option.correct {
+            background: var(--success);
+            color: white;
+            border-color: var(--success);
+        }
+
+        .quiz-option.incorrect {
+            background: var(--warning);
+            color: white;
+            border-color: var(--warning);
+        }
+
+        .quiz-feedback {
+            margin-top: 1.5rem;
+            padding: 1.5rem;
+            border-radius: 10px;
+            font-weight: 500;
+        }
+
+        .quiz-feedback.correct {
+            background: rgba(6, 167, 125, 0.1);
+            color: var(--success);
+            border: 2px solid var(--success);
+        }
+
+        .quiz-feedback.incorrect {
+            background: rgba(231, 111, 81, 0.1);
+            color: var(--warning);
+            border: 2px solid var(--warning);
+        }
+
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Space Mono', monospace;
+        }
+
+        .btn:hover {
+            background: #1a3a4d;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .visualization-container {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 2.5rem;
+            margin-top: 2rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            border: 2px solid var(--border);
+        }
+
+        .sankey-diagram {
+            position: relative;
+            height: 500px;
+            margin: 2rem 0;
+        }
+
+        .infographic {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 16px;
+            padding: 2.5rem;
+            margin-top: 2rem;
+            border: 2px solid var(--border);
+        }
+
+        .timeline {
+            position: relative;
+            padding: 2rem 0;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 4px;
+            height: 100%;
+            background: linear-gradient(180deg, var(--primary), var(--accent));
+            border-radius: 2px;
+        }
+
+        .timeline-item {
+            display: flex;
+            margin-bottom: 3rem;
+            position: relative;
+        }
+
+        .timeline-item:nth-child(odd) {
+            flex-direction: row;
+        }
+
+        .timeline-item:nth-child(even) {
+            flex-direction: row-reverse;
+        }
+
+        .timeline-content {
+            width: 45%;
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            border: 2px solid var(--border);
+        }
+
+        .timeline-marker {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 24px;
+            height: 24px;
+            background: var(--secondary);
+            border: 4px solid var(--card-bg);
+            border-radius: 50%;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .architecture-diagram {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            margin: 2rem 0;
+            flex-wrap: wrap;
+            gap: 2rem;
+        }
+
+        .arch-block {
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            border: 2px solid var(--border);
+            text-align: center;
+            min-width: 200px;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .arch-block:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+        }
+
+        .arch-block h4 {
+            color: var(--primary);
+            margin-bottom: 1rem;
+            font-family: 'Playfair Display', serif;
+        }
+
+        .arrow {
+            font-size: 2rem;
+            color: var(--secondary);
+        }
+
+        .key-concept {
+            background: linear-gradient(135deg, rgba(45, 93, 123, 0.1), rgba(231, 111, 81, 0.1));
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin: 1rem 0;
+            border-left: 4px solid var(--secondary);
+        }
+
+        .key-concept strong {
+            color: var(--primary);
+            font-size: 1.1rem;
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 2rem 0;
+            background: var(--card-bg);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        }
+
+        .comparison-table th {
+            background: var(--primary);
+            color: white;
+            padding: 1.5rem;
+            text-align: left;
+            font-family: 'Space Mono', monospace;
+            font-weight: 700;
+        }
+
+        .comparison-table td {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .comparison-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .comparison-table tr:hover {
+            background: var(--background);
+        }
+
+        .formula {
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 10px;
+            font-family: 'Space Mono', monospace;
+            margin: 1.5rem 0;
+            border: 2px solid var(--border);
+            overflow-x: auto;
+            text-align: center;
+            font-size: 1.1rem;
+        }
+
+        .progress-tracker {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            background: var(--card-bg);
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            border: 2px solid var(--border);
+            z-index: 50;
+            max-width: 200px;
+        }
+
+        .progress-tracker h4 {
+            font-family: 'Space Mono', monospace;
+            margin-bottom: 1rem;
+            color: var(--primary);
+            font-size: 0.9rem;
+        }
+
+        .progress-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+            font-size: 0.85rem;
+        }
+
+        .progress-check {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .progress-check.completed {
+            background: var(--success);
+            border-color: var(--success);
+        }
+
+        .interactive-demo {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 2.5rem;
+            margin-top: 2rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            border: 2px solid var(--border);
+        }
+
+        .demo-controls {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .demo-input {
+            flex: 1;
+            min-width: 200px;
+            padding: 1rem;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 1rem;
+            font-family: 'DM Sans', sans-serif;
+        }
+
+        .attention-weights {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .weight-cell {
+            padding: 1rem;
+            text-align: center;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        footer {
+            background: var(--primary);
+            color: white;
+            text-align: center;
+            padding: 2rem;
+            margin-top: 4rem;
+        }
+
+        footer a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        @media (max-width: 768px) {
+            h1 { font-size: 2rem; }
+            h2 { font-size: 1.8rem; }
+            .comparison-grid { grid-template-columns: 1fr; }
+            .timeline::before { left: 20px; }
+            .timeline-item { flex-direction: column !important; }
+            .timeline-content { width: 100%; margin-left: 40px; }
+            .progress-tracker { display: none; }
+            nav ul { flex-direction: column; gap: 0.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="noise-overlay"></div>
+
+    <header>
+        <h1>Attention Architecture Explorer</h1>
+        <p class="subtitle">BAHDANAU vs VASWANI • DEEP DIVE INTO ATTENTION MECHANISMS</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="#overview">Overview</a></li>
+            <li><a href="#comparison">Comparison</a></li>
+            <li><a href="#flashcards">Flashcards</a></li>
+            <li><a href="#quiz">Quiz</a></li>
+            <li><a href="#visualization">Visualizations</a></li>
+            <li><a href="#deep-dive">Deep Dive</a></li>
+        </ul>
+    </nav>
+
+    <div class="progress-tracker">
+        <h4>YOUR PROGRESS</h4>
+        <div class="progress-item">
+            <div class="progress-check completed">✓</div>
+            <span>Started</span>
+        </div>
+        <div class="progress-item">
+            <div class="progress-check" id="flashcard-progress"></div>
+            <span>Flashcards</span>
+        </div>
+        <div class="progress-item">
+            <div class="progress-check" id="quiz-progress"></div>
+            <span>Quiz</span>
+        </div>
+        <div class="progress-item">
+            <div class="progress-check" id="viz-progress"></div>
+            <span>Visualizations</span>
+        </div>
+    </div>
+
+    <div class="container">
+        <section id="overview" class="section">
+            <h2>Introduction to Attention Mechanisms</h2>
+            <p style="font-size: 1.2rem; line-height: 1.8; margin-top: 1rem;">
+                Attention mechanisms revolutionized deep learning by allowing models to focus on relevant parts of the input when producing outputs. Two landmark papers defined this evolution: <strong>Bahdanau et al. (2014)</strong> introduced attention for neural machine translation, while <strong>Vaswani et al. (2017)</strong> showed that attention alone was sufficient, eliminating recurrence entirely.
+            </p>
+
+            <div class="key-concept">
+                <strong>Why Attention Matters:</strong> Traditional sequence-to-sequence models compressed entire input sequences into fixed-size vectors, creating an information bottleneck. Attention allows models to "look back" at all input positions, weighted by relevance.
+            </div>
+
+            <div class="timeline">
+                <div class="timeline-item">
+                    <div class="timeline-marker"></div>
+                    <div class="timeline-content">
+                        <h3 style="color: var(--primary); font-family: 'Playfair Display', serif;">2014: Bahdanau Attention</h3>
+                        <p><strong>Paper:</strong> "Neural Machine Translation by Jointly Learning to Align and Translate"</p>
+                        <p style="margin-top: 0.5rem;">First attention mechanism for seq2seq models. Used with RNNs to align source and target sequences dynamically.</p>
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-marker"></div>
+                    <div class="timeline-content">
+                        <h3 style="color: var(--secondary); font-family: 'Playfair Display', serif;">2017: Transformer (Vaswani)</h3>
+                        <p><strong>Paper:</strong> "Attention Is All You Need"</p>
+                        <p style="margin-top: 0.5rem;">Revolutionary architecture using only attention mechanisms. Introduced multi-head self-attention and positional encodings.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="comparison" class="section">
+            <h2>Side-by-Side Comparison</h2>
+            
+            <div class="comparison-grid">
+                <div class="paper-card">
+                    <h3>Bahdanau et al. (2014)</h3>
+                    <p class="paper-meta">Neural Machine Translation by Jointly Learning to Align and Translate</p>
+                    
+                    <h4 style="color: var(--secondary); margin-top: 1.5rem; margin-bottom: 0.5rem;">Key Innovation</h4>
+                    <p>Introduced attention as an <strong>alignment mechanism</strong> between encoder and decoder states in RNN-based seq2seq models.</p>
+                    
+                    <h4 style="color: var(--secondary); margin-top: 1.5rem; margin-bottom: 0.5rem;">Architecture</h4>
+                    <ul style="list-style-position: inside; line-height: 2;">
+                        <li>Bidirectional RNN encoder</li>
+                        <li>RNN decoder with attention</li>
+                        <li>Additive attention scoring</li>
+                        <li>Context vector computed per timestep</li>
+                    </ul>
+                    
+                    <h4 style="color: var(--secondary); margin-top: 1.5rem; margin-bottom: 0.5rem;">Attention Formula</h4>
+                    <div class="formula">
+                        e<sub>ij</sub> = v<sup>T</sup> tanh(W<sub>1</sub>h<sub>i</sub> + W<sub>2</sub>s<sub>j</sub>)
+                    </div>
+                    <p style="font-size: 0.9rem; color: var(--text-light);">Additive (concat) scoring function with learned parameters</p>
+                </div>
+
+                <div class="paper-card">
+                    <h3>Vaswani et al. (2017)</h3>
+                    <p class="paper-meta">Attention Is All You Need</p>
+                    
+                    <h4 style="color: var(--secondary); margin-top: 1.5rem; margin-bottom: 0.5rem;">Key Innovation</h4>
+                    <p>Showed attention alone is sufficient - no recurrence needed. Introduced <strong>self-attention</strong> and <strong>multi-head attention</strong>.</p>
+                    
+                    <h4 style="color: var(--secondary); margin-top: 1.5rem; margin-bottom: 0.5rem;">Architecture</h4>
+                    <ul style="list-style-position: inside; line-height: 2;">
+                        <li>Stacked encoder-decoder layers</li>
+                        <li>Multi-head self-attention</li>
+                        <li>Scaled dot-product attention</li>
+                        <li>Position-wise feed-forward</li>
+                        <li>Positional encodings</li>
+                    </ul>
+                    
+                    <h4 style="color: var(--secondary); margin-top: 1.5rem; margin-bottom: 0.5rem;">Attention Formula</h4>
+                    <div class="formula">
+                        Attention(Q,K,V) = softmax(QK<sup>T</sup>/√d<sub>k</sub>)V
+                    </div>
+                    <p style="font-size: 0.9rem; color: var(--text-light);">Scaled dot-product with query, key, value matrices</p>
+                </div>
+            </div>
+
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>Feature</th>
+                        <th>Bahdanau (2014)</th>
+                        <th>Vaswani (2017)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Base Architecture</strong></td>
+                        <td>RNN (Bidirectional GRU)</td>
+                        <td>Transformer (No recurrence)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Attention Type</strong></td>
+                        <td>Cross-attention (encoder-decoder)</td>
+                        <td>Self-attention + Cross-attention</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Scoring Function</strong></td>
+                        <td>Additive (learned weights)</td>
+                        <td>Scaled dot-product</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Parallelization</strong></td>
+                        <td>Sequential (limited by RNN)</td>
+                        <td>Fully parallel</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Position Information</strong></td>
+                        <td>Implicit (RNN sequential processing)</td>
+                        <td>Explicit (positional encodings)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Number of Heads</strong></td>
+                        <td>Single attention mechanism</td>
+                        <td>Multi-head (typically 8)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Training Speed</strong></td>
+                        <td>Slower (sequential)</td>
+                        <td>Much faster (parallel)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Long-range Dependencies</strong></td>
+                        <td>Limited by RNN memory</td>
+                        <td>Direct connections to all positions</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section id="flashcards" class="section">
+            <h2>Interactive Flashcards</h2>
+            <p style="margin-bottom: 2rem; font-size: 1.1rem;">Click any card to flip and reveal the answer. Master these concepts before taking the quiz!</p>
+            
+            <div class="flashcard-container">
+                <div class="flashcard" onclick="flipCard(this)">
+                    <div class="flashcard-inner">
+                        <div class="flashcard-front">
+                            <h4>What problem does attention solve in seq2seq models?</h4>
+                        </div>
+                        <div class="flashcard-back">
+                            <p>Attention solves the <strong>information bottleneck</strong> problem. Traditional seq2seq models compress the entire input into a single fixed-size context vector, losing information for long sequences. Attention allows the decoder to access all encoder states weighted by relevance.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flashcard" onclick="flipCard(this)">
+                    <div class="flashcard-inner">
+                        <div class="flashcard-front">
+                            <h4>What is the key difference between Bahdanau and Transformer attention?</h4>
+                        </div>
+                        <div class="flashcard-back">
+                            <p>Bahdanau uses <strong>additive attention</strong> with RNNs for encoder-decoder alignment. Transformers use <strong>scaled dot-product attention</strong> with no recurrence, allowing full parallelization and direct connections between all positions.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flashcard" onclick="flipCard(this)">
+                    <div class="flashcard-inner">
+                        <div class="flashcard-front">
+                            <h4>Why is the attention scaled in Transformers?</h4>
+                        </div>
+                        <div class="flashcard-back">
+                            <p>Dividing by √d<sub>k</sub> prevents dot products from growing too large when dimensionality is high. Large values push softmax into regions with tiny gradients, making training difficult. Scaling keeps gradients healthy.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flashcard" onclick="flipCard(this)">
+                    <div class="flashcard-inner">
+                        <div class="flashcard-front">
+                            <h4>What are Query, Key, and Value in self-attention?</h4>
+                        </div>
+                        <div class="flashcard-back">
+                            <p><strong>Query (Q):</strong> "What am I looking for?"<br>
+                            <strong>Key (K):</strong> "What do I contain?"<br>
+                            <strong>Value (V):</strong> "What information do I have?"<br>
+                            Q·K determines attention weights, which are applied to V.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flashcard" onclick="flipCard(this)">
+                    <div class="flashcard-inner">
+                        <div class="flashcard-front">
+                            <h4>What is multi-head attention and why use it?</h4>
+                        </div>
+                        <div class="flashcard-back">
+                            <p>Multi-head attention runs multiple attention mechanisms in parallel, each learning different representation subspaces. This allows the model to attend to different aspects simultaneously (e.g., syntax, semantics, position).</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flashcard" onclick="flipCard(this)">
+                    <div class="flashcard-inner">
+                        <div class="flashcard-front">
+                            <h4>Why do Transformers need positional encodings?</h4>
+                        </div>
+                        <div class="flashcard-back">
+                            <p>Unlike RNNs which process sequentially, self-attention has no notion of order. Positional encodings inject position information using sine/cosine functions, allowing the model to understand token order and distance.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flashcard" onclick="flipCard(this)">
+                    <div class="flashcard-inner">
+                        <div class="flashcard-front">
+                            <h4>What is the alignment model in Bahdanau attention?</h4>
+                        </div>
+                        <div class="flashcard-back">
+                            <p>The alignment model learns which source positions are most relevant for predicting each target word. It computes attention scores using a small feedforward network with tanh activation: e<sub>ij</sub> = v<sup>T</sup> tanh(W<sub>1</sub>h<sub>i</sub> + W<sub>2</sub>s<sub>j</sub>)</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flashcard" onclick="flipCard(this)">
+                    <div class="flashcard-inner">
+                        <div class="flashcard-front">
+                            <h4>What enables parallel training in Transformers?</h4>
+                        </div>
+                        <div class="flashcard-back">
+                            <p>Self-attention computes relationships between all positions simultaneously without sequential dependencies. All attention weights can be calculated in parallel using matrix operations, unlike RNNs which must process one timestep at a time.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flashcard" onclick="flipCard(this)">
+                    <div class="flashcard-inner">
+                        <div class="flashcard-front">
+                            <h4>What is the context vector in Bahdanau attention?</h4>
+                        </div>
+                        <div class="flashcard-back">
+                            <p>The context vector c<sub>i</sub> is a weighted sum of encoder hidden states, where weights are attention scores. It provides a dynamic, position-specific summary of the source sequence for each decoder timestep.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="quiz" class="section">
+            <h2>Test Your Knowledge</h2>
+            <p style="margin-bottom: 2rem; font-size: 1.1rem;">Challenge yourself with these questions about attention mechanisms!</p>
+            
+            <div id="quiz-area"></div>
+            
+            <button class="btn" onclick="checkQuiz()" id="check-btn" style="margin-top: 1.5rem;">Check Answers</button>
+            <button class="btn" onclick="resetQuiz()" id="reset-btn" style="margin-top: 1.5rem; display: none;">Try Again</button>
+        </section>
+
+        <section id="visualization" class="section">
+            <h2>Visual Learning</h2>
+            
+            <div class="visualization-container">
+                <h3 style="font-family: 'Playfair Display', serif; color: var(--primary); margin-bottom: 1.5rem;">Architecture Flow Comparison</h3>
+                
+                <h4 style="color: var(--secondary); margin-top: 2rem;">Bahdanau Attention Flow</h4>
+                <div class="architecture-diagram">
+                    <div class="arch-block" style="background: linear-gradient(135deg, #e3f2fd, #bbdefb);">
+                        <h4>Input Sequence</h4>
+                        <p style="font-size: 0.9rem;">["Je", "suis", "étudiant"]</p>
+                    </div>
+                    <span class="arrow">→</span>
+                    <div class="arch-block" style="background: linear-gradient(135deg, #f3e5f5, #e1bee7);">
+                        <h4>Bi-RNN Encoder</h4>
+                        <p style="font-size: 0.9rem;">Hidden states h<sub>1</sub>...h<sub>n</sub></p>
+                    </div>
+                    <span class="arrow">→</span>
+                    <div class="arch-block" style="background: linear-gradient(135deg, #fff3e0, #ffe0b2);">
+                        <h4>Attention Weights</h4>
+                        <p style="font-size: 0.9rem;">α<sub>ij</sub> = softmax(e<sub>ij</sub>)</p>
+                    </div>
+                    <span class="arrow">→</span>
+                    <div class="arch-block" style="background: linear-gradient(135deg, #e8f5e9, #c8e6c9);">
+                        <h4>Context Vector</h4>
+                        <p style="font-size: 0.9rem;">c<sub>i</sub> = Σ α<sub>ij</sub>h<sub>j</sub></p>
+                    </div>
+                    <span class="arrow">→</span>
+                    <div class="arch-block" style="background: linear-gradient(135deg, #fce4ec, #f8bbd0);">
+                        <h4>RNN Decoder</h4>
+                        <p style="font-size: 0.9rem;">Output: "I am student"</p>
+                    </div>
+                </div>
+
+                <h4 style="color: var(--secondary); margin-top: 3rem;">Transformer Attention Flow</h4>
+                <div class="architecture-diagram">
+                    <div class="arch-block" style="background: linear-gradient(135deg, #e3f2fd, #bbdefb);">
+                        <h4>Input + Positional</h4>
+                        <p style="font-size: 0.9rem;">Embeddings + PE</p>
+                    </div>
+                    <span class="arrow">→</span>
+                    <div class="arch-block" style="background: linear-gradient(135deg, #f3e5f5, #e1bee7);">
+                        <h4>Q, K, V Projection</h4>
+                        <p style="font-size: 0.9rem;">W<sub>Q</sub>, W<sub>K</sub>, W<sub>V</sub></p>
+                    </div>
+                    <span class="arrow">→</span>
+                    <div class="arch-block" style="background: linear-gradient(135deg, #fff3e0, #ffe0b2);">
+                        <h4>Scaled Dot-Product</h4>
+                        <p style="font-size: 0.9rem;">QK<sup>T</sup>/√d<sub>k</sub></p>
+                    </div>
+                    <span class="arrow">→</span>
+                    <div class="arch-block" style="background: linear-gradient(135deg, #e8f5e9, #c8e6c9);">
+                        <h4>Softmax + Multiply</h4>
+                        <p style="font-size: 0.9rem;">softmax(scores)·V</p>
+                    </div>
+                    <span class="arrow">→</span>
+                    <div class="arch-block" style="background: linear-gradient(135deg, #fce4ec, #f8bbd0);">
+                        <h4>Multi-Head Concat</h4>
+                        <p style="font-size: 0.9rem;">8 parallel heads</p>
+                    </div>
+                    <span class="arrow">→</span>
+                    <div class="arch-block" style="background: linear-gradient(135deg, #fff9c4, #fff59d);">
+                        <h4>Feed Forward</h4>
+                        <p style="font-size: 0.9rem;">Position-wise FFN</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="infographic">
+                <h3 style="font-family: 'Playfair Display', serif; color: var(--primary); margin-bottom: 1.5rem;">Key Formulas Explained</h3>
+                
+                <div style="background: white; padding: 2rem; border-radius: 12px; margin-bottom: 2rem; border: 2px solid var(--border);">
+                    <h4 style="color: var(--secondary); margin-bottom: 1rem;">Bahdanau Additive Attention</h4>
+                    
+                    <div class="formula" style="background: #f8f9fa;">
+                        e<sub>ij</sub> = v<sup>T</sup> tanh(W<sub>1</sub>h<sub>i</sub> + W<sub>2</sub>s<sub>j</sub>)
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem;">
+                        <div style="background: #e3f2fd; padding: 1rem; border-radius: 8px;">
+                            <strong>e<sub>ij</sub></strong>: Attention score
+                        </div>
+                        <div style="background: #f3e5f5; padding: 1rem; border-radius: 8px;">
+                            <strong>h<sub>i</sub></strong>: Encoder hidden state
+                        </div>
+                        <div style="background: #fff3e0; padding: 1rem; border-radius: 8px;">
+                            <strong>s<sub>j</sub></strong>: Decoder state
+                        </div>
+                        <div style="background: #e8f5e9; padding: 1rem; border-radius: 8px;">
+                            <strong>W<sub>1</sub>, W<sub>2</sub>, v</strong>: Learned weights
+                        </div>
+                    </div>
+
+                    <div class="formula" style="background: #f8f9fa; margin-top: 1rem;">
+                        α<sub>ij</sub> = exp(e<sub>ij</sub>) / Σ<sub>k</sub> exp(e<sub>ik</sub>)
+                    </div>
+                    <p style="margin-top: 0.5rem; color: var(--text-light);">Softmax converts scores to probability distribution</p>
+
+                    <div class="formula" style="background: #f8f9fa; margin-top: 1rem;">
+                        c<sub>i</sub> = Σ<sub>j</sub> α<sub>ij</sub> h<sub>j</sub>
+                    </div>
+                    <p style="margin-top: 0.5rem; color: var(--text-light);">Context vector: weighted sum of encoder states</p>
+                </div>
+
+                <div style="background: white; padding: 2rem; border-radius: 12px; border: 2px solid var(--border);">
+                    <h4 style="color: var(--secondary); margin-bottom: 1rem;">Transformer Scaled Dot-Product Attention</h4>
+                    
+                    <div class="formula" style="background: #f8f9fa;">
+                        Attention(Q, K, V) = softmax(QK<sup>T</sup> / √d<sub>k</sub>) V
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 1rem;">
+                        <div style="background: #e3f2fd; padding: 1rem; border-radius: 8px;">
+                            <strong>Q</strong>: Query matrix (what I'm looking for)
+                        </div>
+                        <div style="background: #f3e5f5; padding: 1rem; border-radius: 8px;">
+                            <strong>K</strong>: Key matrix (what I contain)
+                        </div>
+                        <div style="background: #fff3e0; padding: 1rem; border-radius: 8px;">
+                            <strong>V</strong>: Value matrix (information to retrieve)
+                        </div>
+                        <div style="background: #e8f5e9; padding: 1rem; border-radius: 8px;">
+                            <strong>d<sub>k</sub></strong>: Key dimension (scaling factor)
+                        </div>
+                    </div>
+
+                    <div style="background: #fff3e0; padding: 1.5rem; border-radius: 8px; margin-top: 1.5rem; border-left: 4px solid var(--accent);">
+                        <strong>Why Scaling?</strong> When d<sub>k</sub> is large, dot products grow large in magnitude, pushing softmax into regions with extremely small gradients. Dividing by √d<sub>k</sub> counteracts this effect.
+                    </div>
+
+                    <h5 style="margin-top: 1.5rem; color: var(--primary);">Multi-Head Attention</h5>
+                    <div class="formula" style="background: #f8f9fa; margin-top: 0.5rem;">
+                        MultiHead(Q,K,V) = Concat(head<sub>1</sub>,...,head<sub>h</sub>)W<sup>O</sup>
+                    </div>
+                    <p style="margin-top: 0.5rem; color: var(--text-light);">Where each head<sub>i</sub> = Attention(QW<sub>i</sub><sup>Q</sup>, KW<sub>i</sub><sup>K</sup>, VW<sub>i</sub><sup>V</sup>)</p>
+                </div>
+            </div>
+
+            <div class="interactive-demo">
+                <h3 style="font-family: 'Playfair Display', serif; color: var(--primary); margin-bottom: 1.5rem;">Interactive Attention Weights Demo</h3>
+                <p style="margin-bottom: 1.5rem;">See how attention weights distribute across input tokens. Higher intensity = stronger attention.</p>
+                
+                <div class="demo-controls">
+                    <input type="text" class="demo-input" id="demo-input" placeholder="Enter a sentence..." value="The cat sat on the mat">
+                    <button class="btn" onclick="visualizeAttention()">Visualize Attention</button>
+                </div>
+                
+                <div id="attention-output"></div>
+            </div>
+        </section>
+
+        <section id="deep-dive" class="section">
+            <h2>Deep Dive: Technical Details</h2>
+            
+            <div class="paper-card">
+                <h3>Understanding Bahdanau Attention Step-by-Step</h3>
+                
+                <div class="key-concept" style="margin-top: 1.5rem;">
+                    <strong>Step 1: Encoder Processing</strong>
+                    <p>A bidirectional RNN processes the source sequence, creating forward and backward hidden states that are concatenated: h<sub>j</sub> = [h⃗<sub>j</sub>; h⃖<sub>j</sub>]</p>
+                </div>
+
+                <div class="key-concept">
+                    <strong>Step 2: Computing Alignment Scores</strong>
+                    <p>For each decoder timestep i and encoder position j, compute an alignment score using a small feedforward network:</p>
+                    <ul style="margin-top: 0.5rem; margin-left: 1.5rem;">
+                        <li>Concatenate or add encoder state h<sub>j</sub> and previous decoder state s<sub>i-1</sub></li>
+                        <li>Pass through tanh activation with learned parameters</li>
+                        <li>Project to scalar score: e<sub>ij</sub> = v<sup>T</sup> tanh(W<sub>1</sub>h<sub>j</sub> + W<sub>2</sub>s<sub>i-1</sub>)</li>
+                    </ul>
+                </div>
+
+                <div class="key-concept">
+                    <strong>Step 3: Normalize with Softmax</strong>
+                    <p>Convert raw scores to a probability distribution: α<sub>ij</sub> = exp(e<sub>ij</sub>) / Σ<sub>k=1</sub><sup>T<sub>x</sub></sup> exp(e<sub>ik</sub>)</p>
+                </div>
+
+                <div class="key-concept">
+                    <strong>Step 4: Compute Context Vector</strong>
+                    <p>Weighted sum of encoder states: c<sub>i</sub> = Σ<sub>j=1</sub><sup>T<sub>x</sub></sup> α<sub>ij</sub> h<sub>j</sub></p>
+                </div>
+
+                <div class="key-concept">
+                    <strong>Step 5: Generate Output</strong>
+                    <p>Concatenate context vector with decoder state and pass through softmax to predict the next token: y<sub>i</sub> = g(y<sub>i-1</sub>, s<sub>i</sub>, c<sub>i</sub>)</p>
+                </div>
+            </div>
+
+            <div class="paper-card" style="margin-top: 2rem;">
+                <h3>Understanding Transformer Attention Step-by-Step</h3>
+                
+                <div class="key-concept" style="margin-top: 1.5rem;">
+                    <strong>Step 1: Input Embeddings + Positional Encoding</strong>
+                    <p>Tokens are embedded and added to positional encodings (sine/cosine functions) to inject position information:</p>
+                    <div class="formula">
+                        PE<sub>(pos,2i)</sub> = sin(pos/10000<sup>2i/d</sup>)<br>
+                        PE<sub>(pos,2i+1)</sub> = cos(pos/10000<sup>2i/d</sup>)
+                    </div>
+                </div>
+
+                <div class="key-concept">
+                    <strong>Step 2: Create Q, K, V Matrices</strong>
+                    <p>Input is linearly projected into three representations:</p>
+                    <ul style="margin-top: 0.5rem; margin-left: 1.5rem;">
+                        <li><strong>Query (Q)</strong> = XW<sup>Q</sup> - what each token is looking for</li>
+                        <li><strong>Key (K)</strong> = XW<sup>K</sup> - what each token offers for matching</li>
+                        <li><strong>Value (V)</strong> = XW<sup>V</sup> - actual information to retrieve</li>
+                    </ul>
+                </div>
+
+                <div class="key-concept">
+                    <strong>Step 3: Compute Attention Scores</strong>
+                    <p>Calculate compatibility between queries and keys using dot product:</p>
+                    <ul style="margin-top: 0.5rem; margin-left: 1.5rem;">
+                        <li>Score matrix: QK<sup>T</sup> (each query compared with all keys)</li>
+                        <li>Scale by √d<sub>k</sub> to prevent large values</li>
+                        <li>Apply softmax row-wise to get attention weights</li>
+                    </ul>
+                </div>
+
+                <div class="key-concept">
+                    <strong>Step 4: Apply Attention to Values</strong>
+                    <p>Multiply attention weights by value matrix: Output = softmax(QK<sup>T</sup>/√d<sub>k</sub>)V</p>
+                </div>
+
+                <div class="key-concept">
+                    <strong>Step 5: Multi-Head Mechanism</strong>
+                    <p>Run 8 attention mechanisms in parallel (different W<sup>Q</sup>, W<sup>K</sup>, W<sup>V</sup> for each head), concatenate outputs, and project:</p>
+                    <div class="formula">
+                        MultiHead = Concat(head<sub>1</sub>,...,head<sub>8</sub>)W<sup>O</sup>
+                    </div>
+                </div>
+
+                <div class="key-concept">
+                    <strong>Step 6: Add & Normalize</strong>
+                    <p>Residual connection + layer normalization: LayerNorm(x + MultiHead(x))</p>
+                </div>
+
+                <div class="key-concept">
+                    <strong>Step 7: Feed-Forward Network</strong>
+                    <p>Position-wise MLP applied to each position: FFN(x) = max(0, xW<sub>1</sub> + b<sub>1</sub>)W<sub>2</sub> + b<sub>2</sub></p>
+                </div>
+            </div>
+
+            <div class="visualization-container" style="margin-top: 2rem;">
+                <h3 style="font-family: 'Playfair Display', serif; color: var(--primary); margin-bottom: 1.5rem;">Computational Complexity Comparison</h3>
+                
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Operation</th>
+                            <th>Bahdanau (RNN-based)</th>
+                            <th>Transformer</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Per-Layer Complexity</strong></td>
+                            <td>O(n·d²) for RNN + O(n²·d) for attention</td>
+                            <td>O(n²·d) for self-attention</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Sequential Operations</strong></td>
+                            <td>O(n) - must process sequentially</td>
+                            <td>O(1) - fully parallel</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Maximum Path Length</strong></td>
+                            <td>O(n) - through RNN states</td>
+                            <td>O(1) - direct connections</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Memory Complexity</strong></td>
+                            <td>O(n·d) for hidden states</td>
+                            <td>O(n²) for attention matrices</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <div class="key-concept" style="margin-top: 2rem;">
+                    <strong>Key Insight:</strong> Transformers trade memory (O(n²) attention matrices) for speed (parallel computation). For very long sequences (n >> d), the quadratic complexity becomes a bottleneck, leading to variants like Linformer, Performer, and Longformer.
+                </div>
+            </div>
+
+            <div class="infographic" style="margin-top: 2rem;">
+                <h3 style="font-family: 'Playfair Display', serif; color: var(--primary); margin-bottom: 1.5rem;">Impact & Legacy</h3>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem;">
+                    <div style="background: white; padding: 2rem; border-radius: 12px; border: 2px solid var(--border);">
+                        <h4 style="color: var(--secondary); margin-bottom: 1rem;">Bahdanau's Influence</h4>
+                        <ul style="line-height: 2;">
+                            <li>✓ Proved attention mechanism's effectiveness</li>
+                            <li>✓ Foundation for all subsequent attention work</li>
+                            <li>✓ Still used in RNN-based architectures</li>
+                            <li>✓ Inspired visual attention in computer vision</li>
+                            <li>✓ Introduced alignment visualization</li>
+                        </ul>
+                    </div>
+                    
+                    <div style="background: white; padding: 2rem; border-radius: 12px; border: 2px solid var(--border);">
+                        <h4 style="color: var(--secondary); margin-bottom: 1rem;">Transformer Revolution</h4>
+                        <ul style="line-height: 2;">
+                            <li>✓ Enabled modern LLMs (GPT, BERT, T5)</li>
+                            <li>✓ Scaled to billions of parameters</li>
+                            <li>✓ Extended beyond NLP (Vision Transformers)</li>
+                            <li>✓ Spawned efficient variants (Reformer, etc.)</li>
+                            <li>✓ Foundation of ChatGPT, Claude, Gemini</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <footer>
+        <p style="font-family: 'Space Mono', monospace; margin-bottom: 0.5rem;">ATTENTION ARCHITECTURE EXPLORER</p>
+        <p>Deep dive into the papers that revolutionized deep learning</p>
+        <p style="margin-top: 1rem; font-size: 0.9rem;">
+            References: 
+            <a href="https://arxiv.org/abs/1409.0473" target="_blank">Bahdanau et al. (2014)</a> | 
+            <a href="https://arxiv.org/abs/1706.03762" target="_blank">Vaswani et al. (2017)</a>
+        </p>
+    </footer>
+
+    <script>
+        // Flashcard functionality
+        let flippedCards = new Set();
+        
+        function flipCard(card) {
+            card.classList.toggle('flipped');
+            if (card.classList.contains('flipped')) {
+                flippedCards.add(card);
+            }
+            updateProgress();
+        }
+
+        // Quiz questions
+        const quizQuestions = [
+            {
+                question: "What is the primary advantage of the Transformer architecture over Bahdanau attention?",
+                options: [
+                    "It uses more parameters",
+                    "It enables full parallelization during training",
+                    "It has better accuracy on all tasks",
+                    "It requires less memory"
+                ],
+                correct: 1,
+                explanation: "The Transformer's self-attention mechanism allows all positions to be computed in parallel, unlike RNN-based models that must process sequentially. This dramatically speeds up training."
+            },
+            {
+                question: "Why is the dot product scaled by √d_k in Transformer attention?",
+                options: [
+                    "To make the formula more elegant",
+                    "To reduce memory usage",
+                    "To prevent large values that push softmax into regions with tiny gradients",
+                    "To match the dimensionality of the inputs"
+                ],
+                correct: 2,
+                explanation: "When d_k is large, dot products grow in magnitude, pushing softmax to extremes where gradients vanish. Scaling by √d_k counteracts this effect."
+            },
+            {
+                question: "What type of attention does Bahdanau et al. (2014) introduce?",
+                options: [
+                    "Self-attention",
+                    "Cross-attention between encoder and decoder",
+                    "Multi-head attention",
+                    "Sparse attention"
+                ],
+                correct: 1,
+                explanation: "Bahdanau attention is a cross-attention mechanism that allows the decoder to attend to encoder states, learning to align source and target sequences."
+            },
+            {
+                question: "What do positional encodings in Transformers provide?",
+                options: [
+                    "Information about token importance",
+                    "Information about sequence order and position",
+                    "Information about token frequency",
+                    "Information about token relationships"
+                ],
+                correct: 1,
+                explanation: "Since self-attention has no inherent notion of order (it's permutation-invariant), positional encodings inject position information using sine/cosine functions."
+            },
+            {
+                question: "In multi-head attention, what does having multiple 'heads' allow?",
+                options: [
+                    "Faster computation",
+                    "Lower memory usage",
+                    "Learning different representation subspaces simultaneously",
+                    "Better gradient flow"
+                ],
+                correct: 2,
+                explanation: "Multiple heads allow the model to attend to information from different representation subspaces at different positions, capturing various aspects like syntax, semantics, and position."
+            }
+        ];
+
+        function initQuiz() {
+            const quizArea = document.getElementById('quiz-area');
+            quizArea.innerHTML = quizQuestions.map((q, idx) => `
+                <div class="quiz-container" id="quiz-${idx}">
+                    <div class="quiz-question">${idx + 1}. ${q.question}</div>
+                    <div class="quiz-options">
+                        ${q.options.map((opt, optIdx) => `
+                            <div class="quiz-option" onclick="selectOption(${idx}, ${optIdx})" data-quiz="${idx}" data-option="${optIdx}">
+                                ${opt}
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div class="quiz-feedback" id="feedback-${idx}" style="display: none;"></div>
+                </div>
+            `).join('');
+        }
+
+        function selectOption(quizIdx, optIdx) {
+            const container = document.getElementById(`quiz-${quizIdx}`);
+            const options = container.querySelectorAll('.quiz-option');
+            options.forEach((opt, idx) => {
+                if (idx === optIdx) {
+                    opt.classList.add('selected');
+                } else {
+                    opt.classList.remove('selected');
+                }
+            });
+        }
+
+        function checkQuiz() {
+            let correct = 0;
+            quizQuestions.forEach((q, idx) => {
+                const container = document.getElementById(`quiz-${idx}`);
+                const selected = container.querySelector('.quiz-option.selected');
+                const feedback = document.getElementById(`feedback-${idx}`);
+                
+                if (selected) {
+                    const selectedIdx = parseInt(selected.dataset.option);
+                    const options = container.querySelectorAll('.quiz-option');
+                    
+                    if (selectedIdx === q.correct) {
+                        selected.classList.add('correct');
+                        feedback.className = 'quiz-feedback correct';
+                        feedback.innerHTML = `✓ Correct! ${q.explanation}`;
+                        correct++;
+                    } else {
+                        selected.classList.add('incorrect');
+                        options[q.correct].classList.add('correct');
+                        feedback.className = 'quiz-feedback incorrect';
+                        feedback.innerHTML = `✗ Incorrect. ${q.explanation}`;
+                    }
+                    feedback.style.display = 'block';
+                    
+                    // Disable clicking after checking
+                    options.forEach(opt => {
+                        opt.style.pointerEvents = 'none';
+                    });
+                }
+            });
+            
+            document.getElementById('check-btn').style.display = 'none';
+            document.getElementById('reset-btn').style.display = 'inline-block';
+            
+            if (correct === quizQuestions.length) {
+                document.getElementById('quiz-progress').textContent = '✓';
+                document.getElementById('quiz-progress').classList.add('completed');
+            }
+        }
+
+        function resetQuiz() {
+            initQuiz();
+            document.getElementById('check-btn').style.display = 'inline-block';
+            document.getElementById('reset-btn').style.display = 'none';
+        }
+
+        function visualizeAttention() {
+            const input = document.getElementById('demo-input').value;
+            const tokens = input.split(' ');
+            const output = document.getElementById('attention-output');
+            
+            // Generate random attention weights for demo
+            const weights = tokens.map(() => 
+                tokens.map(() => Math.random())
+            );
+            
+            // Normalize weights
+            weights.forEach((row, i) => {
+                const sum = row.reduce((a, b) => a + b, 0);
+                weights[i] = row.map(w => w / sum);
+            });
+            
+            const maxWeight = Math.max(...weights.flat());
+            
+            output.innerHTML = `
+                <h4 style="color: var(--primary); margin: 2rem 0 1rem;">Attention Weights Heatmap</h4>
+                <div style="margin-bottom: 1rem;">
+                    <strong>Query tokens (rows)</strong> attending to <strong>Key tokens (columns)</strong>
+                </div>
+                <div style="overflow-x: auto;">
+                    <table style="border-collapse: collapse; margin: 0 auto;">
+                        <thead>
+                            <tr>
+                                <th style="padding: 0.5rem;"></th>
+                                ${tokens.map(t => `<th style="padding: 0.5rem; font-family: 'Space Mono', monospace;">${t}</th>`).join('')}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${weights.map((row, i) => `
+                                <tr>
+                                    <td style="padding: 0.5rem; font-weight: bold; font-family: 'Space Mono', monospace;">${tokens[i]}</td>
+                                    ${row.map(w => {
+                                        const intensity = Math.floor((w / maxWeight) * 255);
+                                        const bgColor = `rgb(${255 - intensity}, ${200 + intensity / 5}, ${200 + intensity / 5})`;
+                                        return `<td style="padding: 1rem; background: ${bgColor}; text-align: center; border: 1px solid #ddd;">${w.toFixed(2)}</td>`;
+                                    }).join('')}
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+                <p style="margin-top: 1rem; color: var(--text-light); font-size: 0.9rem;">
+                    Higher values (darker red) indicate stronger attention. Each row sums to 1.0.
+                </p>
+            `;
+            
+            document.getElementById('viz-progress').textContent = '✓';
+            document.getElementById('viz-progress').classList.add('completed');
+        }
+
+        function updateProgress() {
+            const totalFlashcards = document.querySelectorAll('.flashcard').length;
+            if (flippedCards.size >= totalFlashcards / 2) {
+                document.getElementById('flashcard-progress').textContent = '✓';
+                document.getElementById('flashcard-progress').classList.add('completed');
+            }
+        }
+
+        // Initialize
+        window.onload = function() {
+            initQuiz();
+            visualizeAttention(); // Show default visualization
+        };
+
+        // Smooth scrolling
+        document.querySelectorAll('nav a').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+        });
+    </script>
+</body>
+</html>
